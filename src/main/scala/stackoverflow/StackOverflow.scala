@@ -79,14 +79,18 @@ class StackOverflow extends Serializable {
 
   /** Group the questions and answers together */
   def groupedPostings(postings: RDD[Posting]): RDD[(Int, Iterable[(Posting, Posting)])] = {
-    val questions = postings filter {
-      _.postingType == 1
-    } map ((p: Posting) => (p.id, p))
-    val answers = postings filter {
-      _.postingType == 2
-    } map ((p: Posting) => p.parentId match { // TODO Is there another way to handle the Option?
-      case Some(id) => (id, p)
-    })
+
+    val questions = for {
+      posting <- postings
+      if posting.postingType == 1
+    } yield (posting.id, posting)
+
+    val answers = for {
+      posting <- postings
+      if posting.postingType == 2
+      parentId <- posting.parentId
+    } yield (parentId, posting)
+
     questions join answers groupByKey
   }
 
@@ -132,14 +136,10 @@ class StackOverflow extends Serializable {
       }
     }
 
-    def toVector(s: (Posting, Int)): (Int, Int) = {
-      val (posting, score) = s
-      firstLangInTag(posting.tags, langs) match {
-        case Some(x) => (x * langSpread, score) // TODO Is there another way to handle the option?
-      }
-    }
-
-    scored.map(toVector)
+    for {
+      (posting, score) <- scored
+      x <- firstLangInTag(posting.tags, langs)
+    } yield (x * langSpread, score)
   }
 
 
