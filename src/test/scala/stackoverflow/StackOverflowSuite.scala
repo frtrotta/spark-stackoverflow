@@ -49,10 +49,10 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     val idList = List(6, 42, 72, 126, 174)
     val result = scored.filter{case (posting, _) => idList.contains(posting.id)}.collect()
 
-    assert(result.contains((1,6,None,None,140,Some("CSS")),67), "(1,6,None,None,140,Some(\"CSS\")),67)")
-    assert(result.contains((1,42,None,None,155,Some("PHP")),89), "(1,42,None,None,155,Some(\"PHP\")),89)")
-    assert(result.contains((1,72,None,None,16,Some("Ruby")),3), "(1,72,None,None,16,Some(\"Ruby\")),3)")
-    assert(result.contains((1,126,None,None,33,Some("Java")),30), "(1,126,None,None,33,Some(\"Java\")),30)")
-    assert(result.contains((1,174,None,None,38,Some("C#")),20), "(1,174,None,None,38,Some(\"C#\")),20)")
+    assert(result.contains(Posting(1,6,None,None,140,Some("CSS")),67), "Does not contain CSS")
+    assert(result.contains(Posting(1,42,None,None,155,Some("PHP")),89), "Does not contain PHP")
+    assert(result.contains(Posting(1,72,None,None,16,Some("Ruby")),3), "Does not contain Ruby")
+    assert(result.contains(Posting(1,126,None,None,33,Some("Java")),30), "Does not contain Java")
+    assert(result.contains(Posting(1,174,None,None,38,Some("C#")),20), "Does not contain C#")
   }
 }
