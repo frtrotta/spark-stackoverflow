@@ -84,7 +84,7 @@ class StackOverflow extends Serializable {
     } map ((p: Posting) => (p.id, p))
     val answers = postings filter {
       _.postingType == 2
-    } map ((p: Posting) => p.parentId match {
+    } map ((p: Posting) => p.parentId match { // TODO Is there another way to handle the Option?
       case Some(id) => (id, p)
     })
     questions join answers groupByKey
@@ -132,7 +132,14 @@ class StackOverflow extends Serializable {
       }
     }
 
-    ???
+    def toVector(s: (Posting, Int)): (Int, Int) = {
+      val (posting, score) = s
+      firstLangInTag(posting.tags, langs) match {
+        case Some(x) => (x * langSpread, score) // TODO Is there another way to handle the option?
+      }
+    }
+
+    scored.map(toVector)
   }
 
 

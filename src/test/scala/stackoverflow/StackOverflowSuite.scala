@@ -43,9 +43,12 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
   test("scored") {
     import StackOverflow._
     val lines = sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
-    val raw = testObject.rawPostings(lines)
-    val grouped = testObject.groupedPostings(raw)
-    val scored = testObject.scoredPostings(grouped)
+    val raw = rawPostings(lines)
+    val grouped = groupedPostings(raw)
+    val scored = scoredPostings(grouped)
+
+    assert(scored.count() == 2121822, "Incorrect size")
+
     val idList = List(6, 42, 72, 126, 174)
     val result = scored.filter{case (posting, _) => idList.contains(posting.id)}.collect()
 
@@ -54,5 +57,22 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     assert(result.contains(Posting(1,72,None,None,16,Some("Ruby")),3), "Does not contain Ruby")
     assert(result.contains(Posting(1,126,None,None,33,Some("Java")),30), "Does not contain Java")
     assert(result.contains(Posting(1,174,None,None,38,Some("C#")),20), "Does not contain C#")
+  }
+
+  test("Vectors for clustering") {
+    import StackOverflow._
+    val lines = sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
+    val raw = rawPostings(lines)
+    val grouped = groupedPostings(raw)
+    val scored = scoredPostings(grouped)
+    val vectors = vectorPostings(scored)
+
+    assert(vectors.count() == 2121822, "Incorrect size")
+
+    assert(vectors.filter(_ == (350000,67)).count() >= 1, "Does not contain (350000,67)")
+    assert(vectors.filter(_ == (100000,89)).count() >= 1, "Does not contain (100000,89)")
+    assert(vectors.filter(_ == (300000,3)).count() >= 1, "Does not contain (300000,3)")
+    assert(vectors.filter(_ == (50000,30)).count() >= 1, "Does not contain (50000,30)")
+    assert(vectors.filter(_ == (200000,20)).count() >= 1, "Does not contain (200000,20)")
   }
 }
