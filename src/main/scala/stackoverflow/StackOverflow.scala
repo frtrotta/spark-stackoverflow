@@ -24,7 +24,7 @@ object StackOverflow extends StackOverflow {
     val raw = rawPostings(lines)
     val grouped = groupedPostings(raw)
     val scored = scoredPostings(grouped)
-    val vectors = vectorPostings(scored)
+    val vectors = vectorPostings(scored).cache()
     //    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
 
     val means = kmeans(sampleVectors(vectors), vectors, debug = true)
@@ -194,9 +194,19 @@ class StackOverflow extends Serializable {
 
   /** Main kmeans computation */
   @tailrec final def kmeans(means: Array[(Int, Int)], vectors: RDD[(Int, Int)], iter: Int = 1, debug: Boolean = false): Array[(Int, Int)] = {
-    val newMeans = means.clone() // you need to compute newMeans
+    val newMeans = means.clone()
 
-    // TODO: Fill in the newMeans array
+    val mapped = vectors.map(p => (findClosest(p, means), p))
+    val clusters = mapped.groupByKey()
+    val partialMeans = clusters.mapValues(averageVectors).collect()
+
+    var idx = 0
+    while (idx < partialMeans.length) {
+      val (i, p) = partialMeans(idx)
+      newMeans(i) = p
+      idx += 1
+    }
+
     val distance = euclideanDistance(means, newMeans)
 
     if (debug) {
@@ -295,10 +305,20 @@ class StackOverflow extends Serializable {
       val (x, n) = vs.groupBy(_._1).mapValues(_.size).toList.sortBy(_._2)(Ordering[Int].reverse).head
       val langLabel: String = langs(x / langSpread)
       // most common language in the cluster
-      val langPercent: Double = n / vs.size
+      val langPercent: Double = n.toDouble * 100 / vs.size
       // percent of the questions in the most common language
       val clusterSize: Int = vs.size
-      val medianScore: Int = vs.map(_._2).toArray.sorted.apply(vs.size / 2 + 1)
+      val medianScore: Int = {
+        val temp = vs.map(_._2).toArray.sorted
+        if (clusterSize % 2 == 1) {
+          temp((clusterSize-1) / 2)
+        }
+        else {
+          val l = temp((clusterSize+1)/2)
+          val h = temp((clusterSize-1)/2)
+          (l+h)/2
+        }
+      }
 
       (langLabel, langPercent, clusterSize, medianScore)
     }
