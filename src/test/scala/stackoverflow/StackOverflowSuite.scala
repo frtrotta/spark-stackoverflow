@@ -1,6 +1,6 @@
 package stackoverflow
 
-import org.scalatest.{FunSuite, BeforeAndAfterAll}
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.SparkConf
@@ -24,6 +24,11 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     override def kmeansMaxIterations = 120
   }
 
+  override def afterAll(): Unit = {
+    import StackOverflow._
+    sc.stop()
+  }
+
   test("testObject can be instantiated") {
     val instantiatable = try {
       testObject
@@ -35,4 +40,19 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
   }
 
 
+  test("scored") {
+    import StackOverflow._
+    val lines = sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
+    val raw = testObject.rawPostings(lines)
+    val grouped = testObject.groupedPostings(raw)
+    val scored = testObject.scoredPostings(grouped)
+    val idList = List(6, 42, 72, 126, 174)
+    val result = scored.filter{case (posting, _) => idList.contains(posting.id)}.collect()
+
+    assert(result.contains((1,6,None,None,140,Some("CSS")),67), "(1,6,None,None,140,Some(\"CSS\")),67)")
+    assert(result.contains((1,42,None,None,155,Some("PHP")),89), "(1,42,None,None,155,Some(\"PHP\")),89)")
+    assert(result.contains((1,72,None,None,16,Some("Ruby")),3), "(1,72,None,None,16,Some(\"Ruby\")),3)")
+    assert(result.contains((1,126,None,None,33,Some("Java")),30), "(1,126,None,None,33,Some(\"Java\")),30)")
+    assert(result.contains((1,174,None,None,38,Some("C#")),20), "(1,174,None,None,38,Some(\"C#\")),20)")
+  }
 }
